@@ -23,6 +23,8 @@ import {
   Search,
   Send,
   Sparkles,
+  Trash2,
+  UploadCloud,
   X,
 } from 'lucide-react';
 import {
@@ -43,6 +45,7 @@ type Frame = {
   name: string;
   caption: string;
   tone: string;
+  uploaded?: boolean;
   selection: {
     name: string;
     x: number;
@@ -54,99 +57,6 @@ type Frame = {
   };
 };
 
-const frames: Frame[] = [
-  {
-    id: 'overview',
-    name: '项目概览',
-    caption: 'Overview',
-    tone: '#8799b6',
-    selection: {
-      name: 'Hero / Dashboard',
-      x: 88,
-      y: 156,
-      width: 848,
-      height: 212,
-      radius: 24,
-      fill: '#1B4EED',
-    },
-  },
-  {
-    id: 'explore',
-    name: '灵感探索',
-    caption: 'Explore',
-    tone: '#d7a07c',
-    selection: {
-      name: 'Card / Featured',
-      x: 588,
-      y: 438,
-      width: 348,
-      height: 184,
-      radius: 18,
-      fill: '#FFFFFF',
-    },
-  },
-  {
-    id: 'library',
-    name: '组件资源库',
-    caption: 'Library',
-    tone: '#9c8adc',
-    selection: {
-      name: 'Resource / Tile',
-      x: 88,
-      y: 438,
-      width: 248,
-      height: 184,
-      radius: 18,
-      fill: '#FFFFFF',
-    },
-  },
-  {
-    id: 'flow',
-    name: '创建流程',
-    caption: 'Flow',
-    tone: '#78b8ad',
-    selection: {
-      name: 'Flow / Progress',
-      x: 88,
-      y: 406,
-      width: 848,
-      height: 6,
-      radius: 3,
-      fill: '#1B4EED',
-    },
-  },
-  {
-    id: 'settings',
-    name: '工作区设置',
-    caption: 'Settings',
-    tone: '#c7a1ad',
-    selection: {
-      name: 'Panel / Settings',
-      x: 588,
-      y: 438,
-      width: 348,
-      height: 184,
-      radius: 18,
-      fill: '#FFFFFF',
-    },
-  },
-  {
-    id: 'handoff',
-    name: '开发交付',
-    caption: 'Handoff',
-    tone: '#78a5d8',
-    selection: {
-      name: 'Button / Primary',
-      x: 747,
-      y: 289,
-      width: 132,
-      height: 42,
-      radius: 12,
-      fill: '#1B4EED',
-    },
-  },
-];
-
 const layers = [
   'Canvas / Web 1440',
   'Header',
@@ -157,14 +67,259 @@ const layers = [
 
 const clampZoom = (value: number) => Math.min(1.35, Math.max(0.38, value));
 
+const prototypeTargets: Frame['selection'][] = [
+  {
+    name: 'Hero / Dashboard',
+    x: 0,
+    y: 58,
+    width: 1024,
+    height: 310,
+    radius: 0,
+    fill: '#1749E7',
+  },
+  {
+    name: 'Card / Seamless Campaign',
+    x: 87,
+    y: 438,
+    width: 244,
+    height: 178,
+    radius: 14,
+    fill: '#232C4A',
+  },
+  {
+    name: 'Card / Echo System',
+    x: 347,
+    y: 438,
+    width: 244,
+    height: 178,
+    radius: 14,
+    fill: '#D69977',
+  },
+  {
+    name: 'Metric / Collaboration',
+    x: 607,
+    y: 438,
+    width: 281,
+    height: 178,
+    radius: 14,
+    fill: '#F2F4F8',
+  },
+];
+
+const nodeChildren: Record<string, string[]> = {
+  'Canvas / Root': prototypeTargets.map((target) => target.name),
+  'Hero / Dashboard': [
+    'Hero / Copy',
+    'Text / BUILD WITH CLARITY',
+    'Text / 主标题',
+    'Group / 操作按钮',
+    'Decoration / Orb',
+  ],
+  'Card / Seamless Campaign': [
+    'Text / 01',
+    'Text / Seamless Campaign',
+    'Decoration / Shape — Campaign',
+  ],
+  'Card / Echo System': [
+    'Text / 02',
+    'Text / Echo System',
+    'Decoration / Shape — Echo',
+  ],
+  'Metric / Collaboration': [
+    'Text / 本周协作',
+    'Text / 12+',
+    'Text / 比上周增加 24%',
+    'Chart / Metric bars',
+  ],
+};
+
+const nodeSelectionByName: Record<string, Frame['selection']> = {
+  'Hero / Dashboard': prototypeTargets[0]!,
+  'Card / Seamless Campaign': prototypeTargets[1]!,
+  'Card / Echo System': prototypeTargets[2]!,
+  'Metric / Collaboration': prototypeTargets[3]!,
+  'Hero / Copy': {
+    name: 'Hero / Copy',
+    x: 87,
+    y: 116,
+    width: 392,
+    height: 208,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / BUILD WITH CLARITY': {
+    name: 'Text / BUILD WITH CLARITY',
+    x: 87,
+    y: 116,
+    width: 128,
+    height: 16,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / 主标题': {
+    name: 'Text / 主标题',
+    x: 87,
+    y: 145,
+    width: 315,
+    height: 90,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Group / 操作按钮': {
+    name: 'Group / 操作按钮',
+    x: 87,
+    y: 273,
+    width: 198,
+    height: 38,
+    radius: 8,
+    fill: 'transparent',
+  },
+  'Decoration / Orb': {
+    name: 'Decoration / Orb',
+    x: 689,
+    y: 93,
+    width: 218,
+    height: 218,
+    radius: 109,
+    fill: '#6885FF',
+  },
+  'Text / 01': {
+    name: 'Text / 01',
+    x: 106,
+    y: 457,
+    width: 28,
+    height: 15,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / Seamless Campaign': {
+    name: 'Text / Seamless Campaign',
+    x: 106,
+    y: 526,
+    width: 132,
+    height: 45,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / 02': {
+    name: 'Text / 02',
+    x: 366,
+    y: 457,
+    width: 28,
+    height: 15,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / Echo System': {
+    name: 'Text / Echo System',
+    x: 366,
+    y: 526,
+    width: 115,
+    height: 45,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Decoration / Shape — Campaign': {
+    name: 'Decoration / Shape — Campaign',
+    x: 229,
+    y: 497,
+    width: 88,
+    height: 88,
+    radius: 42,
+    fill: 'transparent',
+  },
+  'Decoration / Shape — Echo': {
+    name: 'Decoration / Shape — Echo',
+    x: 489,
+    y: 497,
+    width: 88,
+    height: 88,
+    radius: 42,
+    fill: 'transparent',
+  },
+  'Text / 本周协作': {
+    name: 'Text / 本周协作',
+    x: 626,
+    y: 457,
+    width: 72,
+    height: 15,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / 12+': {
+    name: 'Text / 12+',
+    x: 626,
+    y: 482,
+    width: 74,
+    height: 43,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Text / 比上周增加 24%': {
+    name: 'Text / 比上周增加 24%',
+    x: 626,
+    y: 532,
+    width: 84,
+    height: 15,
+    radius: 0,
+    fill: 'transparent',
+  },
+  'Chart / Metric bars': {
+    name: 'Chart / Metric bars',
+    x: 808,
+    y: 556,
+    width: 61,
+    height: 39,
+    radius: 0,
+    fill: 'transparent',
+  },
+};
+
+const supportedFileTypes = '.sketch,.fig,.psd,.xd';
+
+function createUploadedFrame(file: File, index: number): Frame {
+  const extension = file.name.includes('.')
+    ? file.name.split('.').pop()!.toUpperCase()
+    : '文件';
+  const name = file.name.replace(/\.[^.]+$/, '') || '未命名设计';
+  const hue =
+    Array.from(file.name).reduce(
+      (value, character) => value + character.charCodeAt(0),
+      0,
+    ) % 360;
+
+  return {
+    id: `upload-${Date.now()}-${index}`,
+    name,
+    caption: `已上传 · ${extension}`,
+    tone: `hsl(${hue} 50% 62%)`,
+    uploaded: true,
+    selection: {
+      name: 'Canvas / Root',
+      x: 72,
+      y: 106,
+      width: 880,
+      height: 516,
+      radius: 16,
+      fill: '#FFFFFF',
+    },
+  };
+}
+
 export function App() {
-  const [activeId, setActiveId] = useState('overview');
+  const [frameList, setFrameList] = useState<Frame[]>([]);
+  const [activeId, setActiveId] = useState('');
+  const [selectedLayer, setSelectedLayer] = useState<Frame['selection']>();
+  const [selectedTreeRoot, setSelectedTreeRoot] =
+    useState<Frame['selection']>();
   const [zoom, setZoom] = useState(0.72);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [mode, setMode] = useState<WorkspaceMode>('inspect');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('style');
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<string>();
+  const fileInput = useRef<HTMLInputElement>(null);
   const drag = useRef<
     | {
         pointerId: number;
@@ -177,11 +332,12 @@ export function App() {
   >(undefined);
 
   const activeFrame = useMemo(
-    () => frames.find((frame) => frame.id === activeId) ?? frames[0]!,
-    [activeId],
+    () => frameList.find((frame) => frame.id === activeId),
+    [activeId, frameList],
   );
-  const selection = activeFrame.selection;
-  const selectionStyle = {
+  const selection = selectedLayer ?? activeFrame?.selection;
+  const treeRoot = selectedTreeRoot ?? activeFrame?.selection;
+  const selectionStyle = selection && {
     left: selection.x,
     top: selection.y,
     width: selection.width,
@@ -224,13 +380,53 @@ export function App() {
   };
 
   const copyCode = async () => {
+    if (!activeFrame || !selection) return;
     try {
-      await navigator.clipboard.writeText(componentCode(activeFrame));
+      await navigator.clipboard.writeText(
+        componentCode(activeFrame, selection),
+      );
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       setCopied(false);
     }
+  };
+
+  const uploadDesigns = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (selectedFiles.length === 0) return;
+
+    const uploadedFrames = selectedFiles.map(createUploadedFrame);
+    setFrameList((current) => [...uploadedFrames, ...current]);
+    setActiveId(uploadedFrames[0]!.id);
+    setSelectedLayer(undefined);
+    setSelectedTreeRoot(undefined);
+    setUploadNotice(
+      selectedFiles.length === 1
+        ? `“${selectedFiles[0]!.name}” 已加入全部设计`
+        : `${selectedFiles.length} 个文件已加入全部设计`,
+    );
+    event.target.value = '';
+  };
+
+  const removeUploadedFrame = (frame: Frame) => {
+    const remainingFrames = frameList.filter((item) => item.id !== frame.id);
+    setFrameList(remainingFrames);
+    if (activeId === frame.id) setActiveId(remainingFrames[0]?.id ?? '');
+    setSelectedLayer(undefined);
+    setSelectedTreeRoot(undefined);
+    setUploadNotice(`“${frame.name}” 已从全部设计中移除`);
+  };
+
+  const selectFrame = (frame: Frame) => {
+    setActiveId(frame.id);
+    setSelectedLayer(undefined);
+    setSelectedTreeRoot(undefined);
+  };
+
+  const selectPrototypeLayer = (layer: Frame['selection']) => {
+    setSelectedLayer(layer);
+    setSelectedTreeRoot(layer);
   };
 
   useEffect(() => {
@@ -243,6 +439,12 @@ export function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!uploadNotice) return;
+    const timer = window.setTimeout(() => setUploadNotice(undefined), 2600);
+    return () => window.clearTimeout(timer);
+  }, [uploadNotice]);
 
   return (
     <main className="workspace-shell">
@@ -329,91 +531,160 @@ export function App() {
               <Search size={20} />
             </button>
           </div>
-          <div className="frame-count">12 个画板 · Web 端</div>
+          <div className="frame-count">{frameList.length} 个画板 · Web 端</div>
+          <input
+            ref={fileInput}
+            className="file-input"
+            type="file"
+            multiple
+            accept={supportedFileTypes}
+            onChange={uploadDesigns}
+          />
+          <button
+            className="upload-design-button"
+            onClick={() => fileInput.current?.click()}
+          >
+            <UploadCloud size={16} />
+            上传设计文件
+          </button>
+          <p className="upload-supported">支持 Sketch、Figma、PSD 与 XD</p>
           <div className="frame-list">
-            {frames.map((frame, index) => (
-              <button
+            {frameList.length === 0 && (
+              <div className="empty-frame-list">
+                <Layers3 size={19} />
+                <strong>还没有设计文件</strong>
+                <span>上传后会在这里生成可选画板</span>
+              </div>
+            )}
+            {frameList.map((frame, index) => (
+              <div
                 className={`frame-item ${frame.id === activeId ? 'selected' : ''}`}
                 key={frame.id}
-                onClick={() => setActiveId(frame.id)}
               >
-                <FrameThumbnail tone={frame.tone} index={index} />
-                <span className="frame-text">
-                  <strong>{frame.name}</strong>
-                  <small>{frame.caption} · 1440 × 1024</small>
-                </span>
-                {frame.id === activeId && (
-                  <ChevronRight className="frame-arrow" size={16} />
+                <button
+                  className="frame-select-button"
+                  onClick={() => selectFrame(frame)}
+                >
+                  <FrameThumbnail tone={frame.tone} index={index} />
+                  <span className="frame-text">
+                    <strong>{frame.name}</strong>
+                    <small>
+                      {frame.caption}
+                      {frame.uploaded ? '' : ' · 1440 × 1024'}
+                    </small>
+                  </span>
+                  {frame.id === activeId && !frame.uploaded && (
+                    <ChevronRight className="frame-arrow" size={16} />
+                  )}
+                </button>
+                {frame.uploaded && (
+                  <button
+                    className="delete-upload-button"
+                    aria-label={`删除 ${frame.name}`}
+                    onClick={() => removeUploadedFrame(frame)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
           <div className="source-badge">
             <Sparkles size={15} />
-            已载入 Sketch 文件
+            已上传的设计会保留在本次工作区
           </div>
+          {uploadNotice && (
+            <div className="upload-notice">
+              <Check size={15} />
+              {uploadNotice}
+            </div>
+          )}
         </aside>
 
-        <section
-          className="canvas-stage"
-          onWheel={onWheel}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={stopDragging}
-          onPointerCancel={stopDragging}
-        >
-          <div className="canvas-hint">
-            <MousePointer2 size={14} />
-            拖动平移 · ⌘ 滚动缩放 · 0 重置
-          </div>
-          <div
-            className="artboard-wrap"
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            }}
-          >
-            <div className="artboard-meta">
-              <span>{activeFrame.name}</span>
-              <i />
-              版本 1.0
-            </div>
-            <PrototypeArtboard
-              frame={activeFrame}
-              mode={mode}
-              selectionStyle={selectionStyle}
-            />
-            <div className="dimension width">1440 px</div>
-            <div className="dimension height">1024 px</div>
-          </div>
-          <button
-            className="reset-view"
-            onClick={() => {
-              setZoom(0.72);
-              setPan({ x: 0, y: 0 });
-            }}
-          >
-            <Maximize2 size={15} />
-            适应画布
-          </button>
-        </section>
+        {activeFrame && selection && selectionStyle ? (
+          <>
+            <section
+              className="canvas-stage"
+              onWheel={onWheel}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={stopDragging}
+              onPointerCancel={stopDragging}
+            >
+              <div className="canvas-hint">
+                <MousePointer2 size={14} />
+                点击图层选中 · 拖动平移 · ⌘ 滚动缩放
+              </div>
+              <div
+                className="artboard-wrap"
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                }}
+              >
+                <div className="artboard-meta">
+                  <span>{activeFrame.name}</span>
+                  <i />
+                  版本 1.0
+                </div>
+                <PrototypeArtboard
+                  frame={activeFrame}
+                  mode={mode}
+                  selection={selection}
+                  selectionStyle={selectionStyle}
+                  onSelectLayer={selectPrototypeLayer}
+                />
+                <div className="dimension width">1440 px</div>
+                <div className="dimension height">1024 px</div>
+              </div>
+              <button
+                className="reset-view"
+                onClick={() => {
+                  setZoom(0.72);
+                  setPan({ x: 0, y: 0 });
+                }}
+              >
+                <Maximize2 size={15} />
+                适应画布
+              </button>
+            </section>
 
-        {drawerOpen ? (
-          <Inspector
-            activeFrame={activeFrame}
-            tab={inspectorTab}
-            setTab={setInspectorTab}
-            copyCode={copyCode}
-            copied={copied}
-            close={() => setDrawerOpen(false)}
-          />
+            {drawerOpen ? (
+              <Inspector
+                activeFrame={activeFrame}
+                selection={selection}
+                treeRoot={treeRoot ?? selection}
+                onSelectLayer={setSelectedLayer}
+                tab={inspectorTab}
+                setTab={setInspectorTab}
+                copyCode={copyCode}
+                copied={copied}
+                close={() => setDrawerOpen(false)}
+              />
+            ) : (
+              <CollapsedDrawer open={() => setDrawerOpen(true)} />
+            )}
+          </>
         ) : (
-          <button
-            className="open-drawer"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="打开检查器"
-          >
-            <PanelRightOpen size={19} />
-          </button>
+          <>
+            <section className="empty-canvas">
+              <div className="empty-canvas-mark">
+                <UploadCloud size={27} />
+              </div>
+              <p>开始一个设计交付</p>
+              <span>
+                上传 Sketch、Figma、PSD 或 XD 文件后，即可在这里查看原型与样式。
+              </span>
+              <button onClick={() => fileInput.current?.click()}>
+                <UploadCloud size={16} />
+                上传设计文件
+              </button>
+            </section>
+            {drawerOpen ? (
+              <EmptyInspector close={() => setDrawerOpen(false)} />
+            ) : (
+              <CollapsedDrawer open={() => setDrawerOpen(true)} />
+            )}
+          </>
         )}
       </section>
     </main>
@@ -438,11 +709,15 @@ function FrameThumbnail({ tone, index }: { tone: string; index: number }) {
 function PrototypeArtboard({
   frame,
   mode,
+  selection,
   selectionStyle,
+  onSelectLayer,
 }: {
   frame: Frame;
   mode: WorkspaceMode;
+  selection: Frame['selection'];
   selectionStyle: React.CSSProperties;
+  onSelectLayer: (layer: Frame['selection']) => void;
 }) {
   return (
     <article className="prototype-artboard" aria-label={`${frame.name} 原型图`}>
@@ -530,13 +805,31 @@ function PrototypeArtboard({
         </div>
       </section>
       {mode === 'inspect' ? (
-        <div className="selection-outline" style={selectionStyle}>
-          <span className="selection-tag">{frame.selection.name}</span>
-          <i className="corner one" />
-          <i className="corner two" />
-          <i className="corner three" />
-          <i className="corner four" />
-        </div>
+        <>
+          {prototypeTargets.map((target) => (
+            <button
+              aria-label={`选中 ${target.name}`}
+              className="prototype-hit-area"
+              key={target.name}
+              style={{
+                left: target.x,
+                top: target.y,
+                width: target.width,
+                height: target.height,
+                borderRadius: target.radius,
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => onSelectLayer(target)}
+            />
+          ))}
+          <div className="selection-outline" style={selectionStyle}>
+            <span className="selection-tag">{selection.name}</span>
+            <i className="corner one" />
+            <i className="corner two" />
+            <i className="corner three" />
+            <i className="corner four" />
+          </div>
+        </>
       ) : (
         <div className="code-surface">
           <Code2 size={15} />
@@ -547,8 +840,44 @@ function PrototypeArtboard({
   );
 }
 
+function CollapsedDrawer({ open }: { open: () => void }) {
+  return (
+    <button className="open-drawer" onClick={open} aria-label="打开检查器">
+      <PanelRightOpen size={19} />
+    </button>
+  );
+}
+
+function EmptyInspector({ close }: { close: () => void }) {
+  return (
+    <aside className="inspector-panel empty-inspector">
+      <div className="inspector-device">
+        <Monitor size={20} />
+        <strong>等待设计文件</strong>
+        <ChevronDown size={17} />
+      </div>
+      <div className="empty-inspector-content">
+        <div>
+          <Layers3 size={23} />
+        </div>
+        <strong>暂无图层信息</strong>
+        <span>上传并选择一个设计文件后，样式和代码会显示在这里。</span>
+      </div>
+      <div className="inspector-footer">
+        <button className="compact-empty-close" onClick={close}>
+          <PanelRightClose size={18} />
+          收起检查器
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 function Inspector({
   activeFrame,
+  selection,
+  treeRoot,
+  onSelectLayer,
   tab,
   setTab,
   copyCode,
@@ -556,13 +885,16 @@ function Inspector({
   close,
 }: {
   activeFrame: Frame;
+  selection: Frame['selection'];
+  treeRoot: Frame['selection'];
+  onSelectLayer: (layer: Frame['selection']) => void;
   tab: InspectorTab;
   setTab: (tab: InspectorTab) => void;
   copyCode: () => void;
   copied: boolean;
   close: () => void;
 }) {
-  const item = activeFrame.selection;
+  const item = selection;
   return (
     <aside className="inspector-panel">
       <div className="inspector-device">
@@ -607,6 +939,11 @@ function Inspector({
             </div>
             <MoreHorizontal size={18} />
           </div>
+          <NodeTree
+            selection={item}
+            treeRoot={treeRoot}
+            onSelectLayer={onSelectLayer}
+          />
           <InspectorSection title="布局">
             <TwoValues
               label="位置"
@@ -662,7 +999,7 @@ function Inspector({
           <div className="code-language">
             <span>
               <i />
-              React + CSS Modules
+              HTML + CSS
             </span>
             <button onClick={copyCode}>
               {copied ? <Check size={15} /> : <Copy size={15} />}
@@ -670,7 +1007,7 @@ function Inspector({
             </button>
           </div>
           <pre>
-            <code>{componentCode(activeFrame)}</code>
+            <code>{componentCode(activeFrame, selection)}</code>
           </pre>
           <div className="code-note">
             <Sparkles size={15} />
@@ -678,25 +1015,6 @@ function Inspector({
           </div>
         </div>
       )}
-
-      <div className="inspector-footer">
-        <button
-          className="primary-code-button"
-          onClick={() => {
-            setTab('code');
-          }}
-        >
-          <Code2 size={18} />
-          查看代码
-        </button>
-        <button
-          className="copy-code-button"
-          aria-label="复制代码"
-          onClick={copyCode}
-        >
-          {copied ? <Check size={18} /> : <Copy size={18} />}
-        </button>
-      </div>
     </aside>
   );
 }
@@ -713,6 +1031,50 @@ function InspectorSection({
       <h3>{title}</h3>
       {children}
     </section>
+  );
+}
+
+function NodeTree({
+  selection,
+  treeRoot,
+  onSelectLayer,
+}: {
+  selection: Frame['selection'];
+  treeRoot: Frame['selection'];
+  onSelectLayer: (layer: Frame['selection']) => void;
+}) {
+  const children = nodeChildren[treeRoot.name] ?? [];
+  return (
+    <InspectorSection title="节点层级">
+      <div className="node-tree" aria-label={`${treeRoot.name} 的节点层级`}>
+        <button
+          className={`node-tree-item root ${selection.name === treeRoot.name ? 'selected' : ''}`}
+          onClick={() => onSelectLayer(treeRoot)}
+        >
+          <ChevronDown size={14} />
+          <Layers3 size={14} />
+          <strong>{treeRoot.name}</strong>
+          <span>{selection.name === treeRoot.name ? '已选中' : '已展开'}</span>
+        </button>
+        {children.length > 0 ? (
+          <div className="node-tree-children">
+            {children.map((child) => (
+              <button
+                className={`node-tree-item ${selection.name === child ? 'selected' : ''}`}
+                key={child}
+                onClick={() => onSelectLayer(nodeSelectionByName[child]!)}
+              >
+                <i />
+                <Layers3 size={13} />
+                <span>{child}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="node-tree-empty">该节点无下级图层</div>
+        )}
+      </div>
+    </InspectorSection>
   );
 }
 
@@ -767,8 +1129,10 @@ function SingleValue({
   );
 }
 
-function componentCode(frame: Frame) {
-  const name =
-    frame.selection.name.replaceAll(/[^a-zA-Z0-9]+/g, '') || 'DesignBlock';
-  return `export function ${name}() {\n  return (\n    <section className={styles.${frame.id}}>\n      <h2>${frame.name}</h2>\n      <span>Build with clarity</span>\n    </section>\n  );\n}\n\n.${frame.id} {\n  width: ${frame.selection.width}px;\n  min-height: ${frame.selection.height}px;\n  border-radius: ${frame.selection.radius}px;\n  background: ${frame.selection.fill};\n}`;
+function componentCode(frame: Frame, selection: Frame['selection']) {
+  const className = `${frame.id}-${selection.name}`
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/(^-|-$)/g, '');
+  return `<!-- index.html -->\n<section class="${className}">\n  <h2>${frame.name}</h2>\n  <p>Build with clarity</p>\n</section>\n\n/* style.css */\n.${className} {\n  width: ${selection.width}px;\n  min-height: ${selection.height}px;\n  border-radius: ${selection.radius}px;\n  background: ${selection.fill};\n}`;
 }
