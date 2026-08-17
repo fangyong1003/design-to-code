@@ -53,6 +53,9 @@ importers:
       '@d2c/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@d2c/intelligence-sdk':
+        specifier: workspace:*
+        version: link:../../packages/intelligence-sdk
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.2.8)

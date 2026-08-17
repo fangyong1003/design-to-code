@@ -1,4 +1,8 @@
 import {
+  OpenAICompatibleIntelligenceProvider,
+  type LocalModelConfig,
+} from '@d2c/intelligence-sdk';
+import {
   Braces,
   Check,
   ChevronDown,
@@ -22,6 +26,7 @@ import {
   Plus,
   Search,
   Send,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   UploadCloud,
@@ -39,6 +44,8 @@ import {
 
 type InspectorTab = 'style' | 'code';
 type WorkspaceMode = 'inspect' | 'code';
+
+type ModelStatus = 'idle' | 'loading' | 'success' | 'error';
 
 type Frame = {
   id: string;
@@ -276,6 +283,40 @@ const nodeSelectionByName: Record<string, Frame['selection']> = {
 };
 
 const supportedFileTypes = '.sketch,.fig,.psd,.xd';
+const modelConfigStorageKey = 'd2c.local-model-config';
+const localOmlxProxyEndpoint = '/omlx-api/v1';
+const defaultLocalModelConfig: LocalModelConfig = {
+  endpoint: 'http://127.0.0.1:8000/v1',
+  model: 'GLM-4.6V-Flash-4bit',
+  apiKey: '',
+};
+
+function modelRequestEndpoint(endpoint: string): string {
+  const normalized = endpoint.trim().replace(/\/$/, '');
+  if (
+    normalized === 'http://127.0.0.1:8000/v1' ||
+    normalized === 'http://localhost:8000/v1'
+  ) {
+    return localOmlxProxyEndpoint;
+  }
+  return endpoint;
+}
+
+function initialModelConfig(): LocalModelConfig {
+  const fallback = defaultLocalModelConfig;
+  try {
+    const stored = window.localStorage.getItem(modelConfigStorageKey);
+    if (!stored) return fallback;
+    const parsed = JSON.parse(stored) as Partial<LocalModelConfig>;
+    return {
+      endpoint: parsed.endpoint || fallback.endpoint,
+      model: parsed.model || fallback.model,
+      apiKey: '',
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 function createUploadedFrame(file: File, index: number): Frame {
   const extension = file.name.includes('.')
@@ -319,6 +360,12 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<string>();
+  const [modelConfig, setModelConfig] =
+    useState<LocalModelConfig>(initialModelConfig);
+  const [modelStatus, setModelStatus] = useState<ModelStatus>('idle');
+  const [modelError, setModelError] = useState<string>();
+  const [modelCode, setModelCode] = useState<string>();
+  const [modelSummary, setModelSummary] = useState<string>();
   const fileInput = useRef<HTMLInputElement>(null);
   const drag = useRef<
     | {
@@ -383,7 +430,7 @@ export function App() {
     if (!activeFrame || !selection) return;
     try {
       await navigator.clipboard.writeText(
-        componentCode(activeFrame, selection),
+        modelCode ?? componentCode(activeFrame, selection),
       );
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
@@ -429,6 +476,37 @@ export function App() {
     setSelectedTreeRoot(layer);
   };
 
+  const generateCodeWithModel = async () => {
+    if (!activeFrame || !selection) return;
+    setModelStatus('loading');
+    setModelError(undefined);
+    try {
+      const provider = new OpenAICompatibleIntelligenceProvider({
+        ...modelConfig,
+        endpoint: modelRequestEndpoint(modelConfig.endpoint),
+      });
+      const result = await provider.generateHtmlCss({
+        documentName: activeFrame.name,
+        node: {
+          name: selection.name,
+          x: selection.x,
+          y: selection.y,
+          width: selection.width,
+          height: selection.height,
+          borderRadius: selection.radius,
+          fill: selection.fill,
+        },
+        children: nodeChildren[selection.name] ?? [],
+      });
+      setModelCode(`${result.html}\n\n/* style.css */\n${result.css}`);
+      setModelSummary(result.summary);
+      setModelStatus('success');
+    } catch (error) {
+      setModelStatus('error');
+      setModelError(error instanceof Error ? error.message : '模型调用失败。');
+    }
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === '0') {
@@ -445,6 +523,27 @@ export function App() {
     const timer = window.setTimeout(() => setUploadNotice(undefined), 2600);
     return () => window.clearTimeout(timer);
   }, [uploadNotice]);
+
+  useEffect(() => {
+    setModelCode(undefined);
+    setModelSummary(undefined);
+    setModelError(undefined);
+    setModelStatus('idle');
+  }, [activeId, selection?.name]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        modelConfigStorageKey,
+        JSON.stringify({
+          endpoint: modelConfig.endpoint,
+          model: modelConfig.model,
+        }),
+      );
+    } catch {
+      // Local storage is optional; a failed write must not affect model use.
+    }
+  }, [modelConfig.endpoint, modelConfig.model]);
 
   return (
     <main className="workspace-shell">
@@ -658,6 +757,13 @@ export function App() {
                 setTab={setInspectorTab}
                 copyCode={copyCode}
                 copied={copied}
+                modelConfig={modelConfig}
+                setModelConfig={setModelConfig}
+                modelStatus={modelStatus}
+                modelError={modelError}
+                modelCode={modelCode}
+                modelSummary={modelSummary}
+                generateCodeWithModel={generateCodeWithModel}
                 close={() => setDrawerOpen(false)}
               />
             ) : (
@@ -882,6 +988,13 @@ function Inspector({
   setTab,
   copyCode,
   copied,
+  modelConfig,
+  setModelConfig,
+  modelStatus,
+  modelError,
+  modelCode,
+  modelSummary,
+  generateCodeWithModel,
   close,
 }: {
   activeFrame: Frame;
@@ -892,6 +1005,13 @@ function Inspector({
   setTab: (tab: InspectorTab) => void;
   copyCode: () => void;
   copied: boolean;
+  modelConfig: LocalModelConfig;
+  setModelConfig: (config: LocalModelConfig) => void;
+  modelStatus: ModelStatus;
+  modelError?: string;
+  modelCode?: string;
+  modelSummary?: string;
+  generateCodeWithModel: () => void;
   close: () => void;
 }) {
   const item = selection;
@@ -999,19 +1119,76 @@ function Inspector({
           <div className="code-language">
             <span>
               <i />
-              HTML + CSS
+              {modelCode ? '本地模型 · HTML + CSS' : 'HTML + CSS'}
             </span>
-            <button onClick={copyCode}>
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-              {copied ? '已复制' : '复制'}
-            </button>
+            <div className="code-actions">
+              <button
+                className="model-generate-button"
+                onClick={generateCodeWithModel}
+                disabled={modelStatus === 'loading'}
+              >
+                <Sparkles size={14} />
+                {modelStatus === 'loading' ? '生成中' : '模型生成'}
+              </button>
+              <button onClick={copyCode}>
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? '已复制' : '复制'}
+              </button>
+            </div>
           </div>
+          <details className="model-config">
+            <summary>
+              <SlidersHorizontal size={14} />
+              本地模型连接
+            </summary>
+            <label>
+              接口地址
+              <input
+                value={modelConfig.endpoint}
+                placeholder="http://127.0.0.1:8000/v1"
+                onChange={(event) =>
+                  setModelConfig({
+                    ...modelConfig,
+                    endpoint: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              模型名称
+              <input
+                value={modelConfig.model}
+                placeholder="例如：qwen3-coder"
+                onChange={(event) =>
+                  setModelConfig({ ...modelConfig, model: event.target.value })
+                }
+              />
+            </label>
+            <label>
+              API Key（可选）
+              <input
+                type="password"
+                value={modelConfig.apiKey ?? ''}
+                placeholder="仅服务端要求时填写"
+                onChange={(event) =>
+                  setModelConfig({ ...modelConfig, apiKey: event.target.value })
+                }
+              />
+            </label>
+            <p>
+              使用 OpenAI 兼容的 <code>/v1/chat/completions</code> 接口。本机
+              OMLX
+              地址会通过网页开发服务器转发；地址和模型名仅保存在当前浏览器。
+            </p>
+          </details>
+          {modelError && <div className="model-error">{modelError}</div>}
           <pre>
-            <code>{componentCode(activeFrame, selection)}</code>
+            <code>{modelCode ?? componentCode(activeFrame, selection)}</code>
           </pre>
           <div className="code-note">
             <Sparkles size={15} />
-            由结构化设计数据生成，可继续在代码编辑器中调整。
+            {modelSummary ??
+              '可使用本地模型将当前图层的结构和样式优化为 HTML + CSS。'}
           </div>
         </div>
       )}
