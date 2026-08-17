@@ -1,0 +1,19 @@
+{
+  "name": "@d2c/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@d2c/adapter-json": "workspace:*",
+    "@d2c/adapter-sketch": "workspace:*",
+    "@d2c/adapter-sdk": "workspace:*",
+    "@d2c/codegen-react": "workspace:*",
+    "@d2c/contracts": "workspace:*",
+    "@d2c/core": "workspace:*",
+    "commander": "^14.0.0"
+  }
+}

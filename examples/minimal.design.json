@@ -1,0 +1,87 @@
+{
+  "irVersion": "1.0",
+  "source": {
+    "adapterId": "example",
+    "name": "Minimal card"
+  },
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Page 1",
+      "nodes": [
+        {
+          "id": "card",
+          "sourceRef": {
+            "adapterId": "example",
+            "pageId": "page-1",
+            "nodeId": "card"
+          },
+          "type": "frame",
+          "name": "Card",
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 160
+          },
+          "layout": {
+            "mode": "flex",
+            "direction": "column",
+            "gap": 12,
+            "confidence": 1
+          },
+          "style": {
+            "backgroundColor": "#ffffff",
+            "borderRadius": 12
+          },
+          "children": [
+            {
+              "id": "title",
+              "sourceRef": {
+                "adapterId": "example",
+                "pageId": "page-1",
+                "nodeId": "title"
+              },
+              "type": "text",
+              "name": "Title",
+              "bounds": {
+                "x": 24,
+                "y": 24,
+                "width": 272,
+                "height": 28
+              },
+              "style": {
+                "color": "#111827",
+                "fontSize": 20,
+                "fontWeight": 600,
+                "lineHeight": 28
+              },
+              "content": {
+                "kind": "text",
+                "value": "Design to Code"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [],
+  "tokens": {
+    "colors": {
+      "surface": "#ffffff",
+      "text-primary": "#111827"
+    },
+    "spacing": {
+      "3": 12,
+      "6": 24
+    },
+    "radii": {
+      "lg": 12
+    },
+    "typography": {}
+  },
+  "assets": [],
+  "diagnostics": []
+}

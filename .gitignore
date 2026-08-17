@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+.design-to-code/
+*.tsbuildinfo
+.DS_Store
