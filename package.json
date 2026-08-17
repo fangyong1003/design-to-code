@@ -9,6 +9,8 @@
   },
   "scripts": {
     "cli": "pnpm --filter @d2c/cli dev",
+    "web": "pnpm --filter @d2c/web dev",
+    "web:build": "pnpm --filter @d2c/web build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "format": "prettier --write .",

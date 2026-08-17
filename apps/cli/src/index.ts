@@ -7,14 +7,18 @@ import { JsonDesignAdapter } from '@d2c/adapter-json';
 import { SketchAdapter } from '@d2c/adapter-sketch';
 import { ReactGenerator } from '@d2c/codegen-react';
 import type { DesignNode, GeneratedArtifact } from '@d2c/contracts';
-import { AdapterRegistry, ConversionPipeline } from '@d2c/core';
+import {
+  AdapterRegistry,
+  ConversionPipeline,
+  LayoutInferencePass,
+} from '@d2c/core';
 import { Command } from 'commander';
 
 const registry = new AdapterRegistry([
   new SketchAdapter(),
   new JsonDesignAdapter(),
 ]);
-const pipeline = new ConversionPipeline(registry);
+const pipeline = new ConversionPipeline(registry, [new LayoutInferencePass()]);
 const reactGenerator = new ReactGenerator();
 const invocationDirectory = process.env.INIT_CWD ?? process.cwd();
 
@@ -160,14 +164,18 @@ program
         styling: 'css-modules' as const,
       };
       const outputDirectory = resolve(invocationDirectory, options.output);
-      const plan = await reactGenerator.plan(parsed.document, {
+      const document = await pipeline.analyze(parsed.document, {
+        jobId: 'cli-generate',
+        workspaceDir: invocationDirectory,
+      });
+      const plan = await reactGenerator.plan(document, {
         projectRoot: invocationDirectory,
         target,
       });
       const artifacts = await reactGenerator.generate(plan, {
         projectRoot: invocationDirectory,
         outputDir: outputDirectory,
-        document: parsed.document,
+        document,
       });
       await writeArtifacts(options.output, artifacts, options.force ?? false);
 

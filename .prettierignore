@@ -2,4 +2,5 @@ node_modules/
 dist/
 coverage/
 .design-to-code/
+generated/
 pnpm-lock.yaml

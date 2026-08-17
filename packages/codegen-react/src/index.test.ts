@@ -64,6 +64,7 @@ describe('ReactGenerator', () => {
     );
 
     expect(page?.content).toContain('Hello React');
+    expect(page?.content).toContain("styles['node-page-home']");
     expect(css?.content).toContain('display: flex');
     expect(css?.content).toContain('border-radius: 12px');
   });

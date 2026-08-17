@@ -91,9 +91,9 @@ class ReactPageRenderer {
       componentName +
       '() {\n' +
       '  return (\n' +
-      '    <section className={styles.' +
+      "    <section className={styles['" +
       pageClass +
-      '} data-design-page={' +
+      "']} data-design-page={" +
       JSON.stringify(page.id) +
       '}>\n' +
       '        ' +
@@ -136,7 +136,7 @@ class ReactPageRenderer {
     const children = node.children
       .map((child) => this.renderNode(child, childUsesFlow))
       .join('\n        ');
-    const classAttribute = 'className={styles.' + className + '}';
+    const classAttribute = "className={styles['" + className + "']}";
 
     if (node.type === 'text') {
       const text = node.content?.kind === 'text' ? node.content.value : '';
@@ -222,6 +222,20 @@ class ReactPageRenderer {
     if (node.layout?.mode === 'flex') {
       declarations.push('display: flex');
       declarations.push('flex-direction: ' + node.layout.direction);
+      if (node.layout.padding) {
+        const padding = node.layout.padding;
+        declarations.push(
+          'padding: ' +
+            padding.top +
+            'px ' +
+            padding.right +
+            'px ' +
+            padding.bottom +
+            'px ' +
+            padding.left +
+            'px',
+        );
+      }
       if (node.layout.gap !== undefined) {
         declarations.push('gap: ' + node.layout.gap + 'px');
       }
